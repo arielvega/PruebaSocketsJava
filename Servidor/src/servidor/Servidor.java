@@ -1,5 +1,6 @@
 package servidor;
 
+import conexion.Instrucciones;
 import conexion.SocketCliente;
 import conexion.SocketServidor;
 import java.io.Console;
@@ -20,15 +21,25 @@ public class Servidor {
         SocketCliente cliente1 = servidor.recibirCliente();
         
         String dato = "";
+        String instruccion = "";
+        
+        String ubicacion;
         
         Scanner consola = new Scanner(System.in);
         
-        while(!dato.equals("SALIR")) {
-            dato = cliente1.leer();
-            System.out.println("el cliente 1 dice: " + dato);
-            
-            System.out.println("Escribe tu mensaje para el cliente:");
-            cliente1.escribir(consola.nextLine());
+        while(!cliente1.esInstruccionSalir()) {
+            instruccion = cliente1.getInstruccion();
+            if (Instrucciones.esInstruccionArchivo(instruccion)){
+                cliente1.recibir();
+                ubicacion = cliente1.recibirArchivo();
+                //mostramos o abrimos el archivo
+            } else if (Instrucciones.esInstruccionChat(instruccion)) {
+                dato = cliente1.recibirChat();
+                System.out.println("el cliente 1 dice: " + dato);
+                
+                System.out.println("Escribe tu mensaje para el cliente:");
+                cliente1.enviarChat(consola.nextLine());
+            }
         }
         
         System.out.println("el servidor finalizó!!!");
