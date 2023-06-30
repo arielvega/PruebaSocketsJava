@@ -129,7 +129,7 @@ public class SocketCliente {
     public String recibirArchivo(){
         String instruccion = this.getUltimaInstruccion();
         String extension = Instrucciones.getExtensionArchivo(instruccion);
-        //se hace lo necesario para recibir el archivo
+        //se hace lo necesario para recibir el archivo 
         return "";
     }
 }
