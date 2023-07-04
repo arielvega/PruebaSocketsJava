@@ -33,6 +33,7 @@ public class Servidor {
                 cliente1.recibir();
                 ubicacion = cliente1.recibirArchivo();
                 //mostramos o abrimos el archivo
+                System.out.println(ubicacion);
             } else if (Instrucciones.esInstruccionChat(instruccion)) {
                 dato = cliente1.recibirChat();
                 System.out.println("el cliente 1 dice: " + dato);

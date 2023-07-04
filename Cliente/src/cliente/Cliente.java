@@ -1,5 +1,6 @@
 package cliente;
 
+import conexion.Instrucciones;
 import conexion.SocketCliente;
 import java.util.Scanner;
 
@@ -15,16 +16,13 @@ public class Cliente {
     public static void main(String[] args) {
         SocketCliente cliente = new SocketCliente();
 
-        String dato = "";
-        Scanner consola = new Scanner(System.in);
+        String instruccion = "";
 
-        while (!dato.equals("SALIR")) {
-            System.out.println("Escribe tu mensaje para el servidor:");
-            cliente.escribir(consola.nextLine());
-            
-            dato = cliente.leer();
-            System.out.println("el servidor dice: " + dato);
-        }
+        String ubicacion;
+
+        ubicacion = "D:\\nuevo45.txt";
+        cliente.enviarArchivo(ubicacion);
+        cliente.escribir(Instrucciones.SALIR);
     }
 
 }
