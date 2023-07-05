@@ -9,7 +9,12 @@ public class Instrucciones {
     public static String ENVIAR_ARCHIVO = "!#ARCHIVO#!";
     public static String ENVIAR_CHAT = "!#CHAT#!";
     public static String RECIBIR = "!#RECIBIR#!";
+    public static String RECIBIDO = "!#RECIBIDO#!";
     public static String SALIR = "!#SALIR#!";
+
+    public static boolean esInstruccion(String dato) {
+        return esInstruccionArchivo(dato) || esInstruccionChat(dato) || esInstruccionRecibir(dato) || esInstruccionRecibido(dato) || esInstruccionSalir(dato);
+    }
 
     public static boolean esInstruccionArchivo(String dato) {
         return dato.startsWith(Instrucciones.ENVIAR_ARCHIVO);
@@ -37,5 +42,9 @@ public class Instrucciones {
 
     public static boolean esInstruccionRecibir(String dato) {
         return dato.equals(Instrucciones.RECIBIR);
+    }
+
+    public static boolean esInstruccionRecibido(String dato) {
+        return dato.equals(Instrucciones.RECIBIDO);
     }
 }

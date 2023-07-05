@@ -18,11 +18,15 @@ import java.util.logging.Logger;
 public class SocketCliente {
 
     private Socket socket;
+    private DataOutputStream salida;
+    private DataInputStream entrada;
+
     private String ultimaInstruccion;
 
     public SocketCliente() {
         try {
             this.socket = new Socket(Constantes.HOST, Constantes.PUERTO);
+            this.createStreams();
         } catch (IOException ex) {
             Logger.getLogger(SocketCliente.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -31,12 +35,21 @@ public class SocketCliente {
 
     public SocketCliente(Socket socket) {
         this.socket = socket;
+        this.createStreams();
+    }
+
+    private void createStreams() {
+        try {
+            this.salida = new DataOutputStream(this.socket.getOutputStream());
+            this.entrada = new DataInputStream(this.socket.getInputStream());
+        } catch (IOException ex) {
+            Logger.getLogger(SocketCliente.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public void escribir(String dato) {
         try {
-            DataOutputStream servidor = new DataOutputStream(this.socket.getOutputStream());
-            servidor.writeUTF(dato);
+            this.salida.writeUTF(dato);
         } catch (IOException ex) {
             Logger.getLogger(SocketCliente.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -45,8 +58,7 @@ public class SocketCliente {
     public String leer() {
         String respuesta = "";
         try {
-            DataInputStream servidor = new DataInputStream(this.socket.getInputStream());
-            respuesta = servidor.readUTF();
+            respuesta = this.entrada.readUTF();
         } catch (IOException ex) {
             Logger.getLogger(SocketCliente.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -67,13 +79,17 @@ public class SocketCliente {
     }
 
     public String getInstruccion() {
-        return this.leer();
+        String instruccion = this.leer();
+        if (Instrucciones.esInstruccion(instruccion)) {
+            this.ultimaInstruccion = instruccion;
+            return this.ultimaInstruccion;
+        }
+        return "";
     }
 
     public boolean esInstruccionArchivo() {
         String instruccion = this.getInstruccion();
         if (Instrucciones.esInstruccionArchivo(instruccion)) {
-            this.ultimaInstruccion = instruccion;
             return true;
         }
         return false;
@@ -82,7 +98,6 @@ public class SocketCliente {
     public boolean esInstruccionChat() {
         String instruccion = this.getInstruccion();
         if (Instrucciones.esInstruccionChat(instruccion)) {
-            this.ultimaInstruccion = instruccion;
             return true;
         }
         return false;
@@ -91,7 +106,6 @@ public class SocketCliente {
     public boolean esInstruccionSalir() {
         String instruccion = this.getInstruccion();
         if (Instrucciones.esInstruccionSalir(instruccion)) {
-            this.ultimaInstruccion = instruccion;
             return true;
         }
         return false;
@@ -101,10 +115,21 @@ public class SocketCliente {
         this.escribir(Instrucciones.RECIBIR);
     }
 
-    public boolean esRecibir() {
+    public void recibido() {
+        this.escribir(Instrucciones.RECIBIDO);
+    }
+
+    public boolean esInstruccionRecibir() {
         String instruccion = this.getInstruccion();
         if (Instrucciones.esInstruccionRecibir(instruccion)) {
-            this.ultimaInstruccion = instruccion;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean esInstruccionRecibido() {
+        String instruccion = this.getInstruccion();
+        if (Instrucciones.esInstruccionRecibido(instruccion)) {
             return true;
         }
         return false;
@@ -113,7 +138,7 @@ public class SocketCliente {
     //METODOS PARA ENVIAR Y RECIBIR MENSAJES DE CHAT
     public void enviarChat(String mensaje) {
         this.escribir(Instrucciones.ENVIAR_CHAT);
-        if (this.esRecibir()) {
+        if (this.esInstruccionRecibir()) {
             this.escribir(mensaje);
         }
     }
@@ -123,7 +148,7 @@ public class SocketCliente {
         return this.leer();
     }
 
-    public void enviarArchivo(String ubicacion) {
+    public boolean enviarArchivo(String ubicacion) {
         //la extension del archivo
         //sale de la ubicacion del archivo
         // asumimos que el archivo termina en ".<ALGO>"
@@ -141,13 +166,13 @@ public class SocketCliente {
         // la extension sale del archivo, va a ser "txt"
         String extension = nombreArchivo.substring(nombreArchivo.lastIndexOf('.') + 1);
         this.escribir(Instrucciones.getInstruccionArchivo(extension));
-        if (this.esRecibir()) {
+        if (this.esInstruccionRecibir()) {
             FileInputStream stream = null;
-            DataOutputStream servidor = null;
             try {
-                servidor = new DataOutputStream(this.socket.getOutputStream());
                 //se hace lo necesario para enviar el archivo
                 File archivo = new File(ubicacion);
+                //enviamos el tamaño del archivo
+                this.salida.writeLong(archivo.length());
                 //para enviar necesita enviar por "partes"...
                 //entonces debe ser un stream de bytes...
                 stream = new FileInputStream(archivo);
@@ -157,11 +182,10 @@ public class SocketCliente {
                 int bytesLeidos;
                 bytesLeidos = stream.read(parte);
                 while (bytesLeidos != -1) {
-                    servidor.write(parte, 0, bytesLeidos);
-                    servidor.flush();
+                    this.salida.write(parte, 0, bytesLeidos);
+                    this.salida.flush();
                     bytesLeidos = stream.read(parte);
                 }
-                stream.close();
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(SocketCliente.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {
@@ -174,14 +198,15 @@ public class SocketCliente {
                 }
             }
         }
-
+        return this.esInstruccionRecibido();
     }
 
     //retorna la direccion donde se guardo el archivo recibido
     //necesitamos saber la extencion del archivo!!!
     public String recibirArchivo() {
-        DataInputStream servidor = null;
+        this.recibir();
         String ubicacion = null;
+        FileOutputStream stream = null;
         try {
             String instruccion = this.getUltimaInstruccion();
             String extension = Instrucciones.getExtensionArchivo(instruccion);
@@ -201,25 +226,32 @@ public class SocketCliente {
             // y en java nos ayuda con una funcion para crear archivos temporales
             // en la carpeta temporal File.createTempFile();
             File archivo = File.createTempFile("temp_", extension);
+            //obtenemos el tamaño del archivo
+            Long longitudArchivo = this.entrada.readLong();
             // creamos el stream
-            FileOutputStream stream = new FileOutputStream(archivo);
+            stream = new FileOutputStream(archivo);
             //creamos la "parte" que se va a recibir
             byte[] parte = new byte[1024];
             int bytesLeidos;
-            // creamos el streamde donde se va a leer
-            servidor = new DataInputStream(this.socket.getInputStream());
-            //leemos la "parte"
-            bytesLeidos = servidor.read(parte, 0, parte.length);
 
-            while (bytesLeidos > 0) {
+            while (longitudArchivo > 0) {
+                //leemos la "parte"
+                bytesLeidos = this.entrada.read(parte, 0, parte.length);
                 stream.write(parte, 0, bytesLeidos);
-                bytesLeidos = servidor.read(parte, 0, parte.length);
+                stream.flush();
+                longitudArchivo = longitudArchivo - bytesLeidos;
             }
-            stream.close();
             ubicacion = archivo.getAbsolutePath();
         } catch (IOException ex) {
             Logger.getLogger(SocketCliente.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                stream.close();
+            } catch (IOException ex) {
+                Logger.getLogger(SocketCliente.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
+        this.recibido();
         return ubicacion;
     }
 }

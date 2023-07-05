@@ -28,9 +28,8 @@ public class Servidor {
         Scanner consola = new Scanner(System.in);
         
         while(!cliente1.esInstruccionSalir()) {
-            instruccion = cliente1.getInstruccion();
+            instruccion = cliente1.getUltimaInstruccion();
             if (Instrucciones.esInstruccionArchivo(instruccion)){
-                cliente1.recibir();
                 ubicacion = cliente1.recibirArchivo();
                 //mostramos o abrimos el archivo
                 System.out.println(ubicacion);
