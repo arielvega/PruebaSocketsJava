@@ -20,7 +20,7 @@ public class Cliente {
 
         String ubicacion;
 
-        ubicacion = "D:\\nuevo45.txt";
+        ubicacion = "G:\\logo.png";
         cliente.enviarArchivo(ubicacion);
         cliente.escribir(Instrucciones.SALIR);
     }

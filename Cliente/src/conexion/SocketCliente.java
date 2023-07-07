@@ -163,9 +163,14 @@ public class SocketCliente {
         // algunos lenguajes, por ejemplo python es una constante que se 
         // llama os.PathSeparator, en java es File.separator
         String nombreArchivo = ubicacion.substring(ubicacion.lastIndexOf(File.separator) + 1);
+        
         // la extension sale del archivo, va a ser "txt"
         String extension = nombreArchivo.substring(nombreArchivo.lastIndexOf('.') + 1);
+        
+        // le decimos ENVIAR ARCHIVO
         this.escribir(Instrucciones.getInstruccionArchivo(extension));
+        
+        // pregunto si me llego la instruccion RECIBIR
         if (this.esInstruccionRecibir()) {
             FileInputStream stream = null;
             try {
@@ -237,6 +242,7 @@ public class SocketCliente {
             while (longitudArchivo > 0) {
                 //leemos la "parte"
                 bytesLeidos = this.entrada.read(parte, 0, parte.length);
+                //guardamos la parte en el archivo temporal
                 stream.write(parte, 0, bytesLeidos);
                 stream.flush();
                 longitudArchivo = longitudArchivo - bytesLeidos;
